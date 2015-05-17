@@ -27,9 +27,9 @@ if (!require(gridExtra)) {stop('Package gridExtra must be installed before proce
 downloadedFilename <- 'activity.zip'
 dataFilename <- 'activity.csv'
 if (!file.exists(dataFilename)) {
-    dataUrl <- paste('https://d396qusza40orc.cloudfront.net/repdata/data/',filename, sep = '')
+    dataUrl <- paste('https://d396qusza40orc.cloudfront.net/repdata/data/',downloadedFilename, sep = '')
     download.file(dataUrl, destfile = downloadedFilename)
-    unzip(filename, files = dataFilename)
+    unzip(downloadedFilename, files = dataFilename)
 }
 
 activity <- read.csv('activity.csv', stringsAsFactors = F, 

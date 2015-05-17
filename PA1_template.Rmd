@@ -31,9 +31,9 @@ if (!require(gridExtra)) {stop('Package gridExtra must be installed before proce
 downloadedFilename <- 'activity.zip'
 dataFilename <- 'activity.csv'
 if (!file.exists(dataFilename)) {
-    dataUrl <- paste('https://d396qusza40orc.cloudfront.net/repdata/data/',filename, sep = '')
+    dataUrl <- paste('https://d396qusza40orc.cloudfront.net/repdata/data/',downloadedFilename, sep = '')
     download.file(dataUrl, destfile = downloadedFilename)
-    unzip(filename, files = dataFilename)
+    unzip(downloadedFilename, files = dataFilename)
 }
 
 activity <- read.csv('activity.csv', stringsAsFactors = F, 
@@ -128,7 +128,7 @@ head(imputed)
 The strategy was implemented using the data frame 'ts' from previous question, since it already has the means for each interval for all days. It is then just a matter of joining the copy of original data frame, the data frame with means for each interval, and replacing each NA in 'steps' for the mean in column 'meansteps'.
 
 4. Make a histogram of the total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day. Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps?
-```{r histogram, message=FALSE,fig.width=200,fig.height=200}
+```{r histogram, message=FALSE,fig.width=10,fig.height=5}
 
 # Summarize IMPUTED data
 imputedsteps <- imputed %>% group_by(date) %>% summarise(totalsteps=sum(steps, na.rm = T))
