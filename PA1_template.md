@@ -192,10 +192,26 @@ These are the interesting observations of both imputed and original data and the
 
 
 ```r
-activity$weekday <- ifelse(wday(activity$date) %in% c(6,7), 0,1)
+# Add column weekday to original data, with weekday=0 and weekend=1 
+activity$weekday <- ifelse(wday(activity$date) %in% c(1,7), 0,1)
 
+# group by interval and summarise with mean.
 differences <- summarise(group_by(activity, weekday, interval), meansteps=mean(steps, na.rm=T))
 
+head(filter(activity, weekday==0))
+```
+
+```
+##   steps       date interval weekday
+## 1     0 2012-10-06        0       0
+## 2     0 2012-10-06        5       0
+## 3     0 2012-10-06       10       0
+## 4     0 2012-10-06       15       0
+## 5     0 2012-10-06       20       0
+## 6     0 2012-10-06       25       0
+```
+
+```r
 ggplot(differences, aes(x=interval, y=meansteps, group=weekday, color=factor(weekday))) +
   geom_line() +
   geom_smooth(method="lm", se=FALSE, lty=2, lwd=1) +
@@ -205,6 +221,8 @@ ggplot(differences, aes(x=interval, y=meansteps, group=weekday, color=factor(wee
 
 ![](PA1_template_files/figure-html/differences-1.png) 
 
-This comparison was constructed by taking the mean steps for all weekdays and weekends grouped by interval of the original data (not the imputed one) and following the notion of weekday and weekend activity of a hypothetical human.
+This comparison was constructed by taking the mean steps for all weekdays and weekends grouped by interval of the original data (not the imputed one) and following the notion of weekday and weekend activity of a hypothetical human throughout the day.
 
-From the chart it is somewhat difficult to conclude something about the actual pattern, but upon closer inspection and addition of trend lines, it is very clear that during weekends the activity almost stays flat compared to weekdays.
+From the regression lines in the chart it is clear that during weekdays human activity almost stays flat, and that on weekends it increases substantially, even though the maximum number of steps are still taken at around 8:30 during weekdays. This could be explained by sedentarism in the workplace during weekdays, and increased outdoor activity during weekends, but a deeper analysis and further data gathering (like consumption patterns and geographical data) should be done before jumping to this conclusion.    
+
+This concludes the small analysis for the 1st Peer-assessed course project for the 'Reproducible Research' MOOC.
