@@ -189,3 +189,22 @@ These are the interesting observations of both imputed and original data and the
 5. Therefore, and given that no data in the real world is as neatly laid out as the imputed data, we can surmise the imputing strategy will introduce white noise such that the distribution will be close to normal.
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+
+```r
+activity$weekday <- ifelse(wday(activity$date) %in% c(6,7), 0,1)
+
+differences <- summarise(group_by(activity, weekday, interval), meansteps=mean(steps, na.rm=T))
+
+ggplot(differences, aes(x=interval, y=meansteps, group=weekday, color=factor(weekday))) +
+  geom_line() +
+  geom_smooth(method="lm", se=FALSE, lty=2, lwd=1) +
+  scale_color_discrete(name="Weekday",
+                         labels=c("Weekend", "Weekday"))
+```
+
+![](PA1_template_files/figure-html/differences-1.png) 
+
+This comparison was constructed by taking the mean steps for all weekdays and weekends grouped by interval of the original data (not the imputed one) and following the notion of weekday and weekend activity of a hypothetical human.
+
+From the chart it is somewhat difficult to conclude something about the actual pattern, but upon closer inspection and addition of trend lines, it is very clear that during weekends the activity almost stays flat compared to weekdays.
