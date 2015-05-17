@@ -161,3 +161,7 @@ These are the interesting observations of both imputed and original data and the
 5. Therefore, and given that no data in the real world is as neatly laid out as the imputed data, we can surmise the imputing strategy will introduce white noise such that the distribution will be close to normal.
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+```{r histogram, message=FALSE,fig.width=10,fig.height=5}
+weekends <- activity %>% 
+```
