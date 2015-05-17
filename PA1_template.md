@@ -1,9 +1,4 @@
----
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
----
+# Reproducible Research: Peer Assessment 1
 This peer-assessed work is part of the evaluation for the 'Reproducible Research' MOOC.
 
 This assignment makes use of data from a personal activity monitoring device. This device collects data at 5 minute intervals through out the day. The data consists of two months of data from an anonymous individual collected during the months of October and November, 2012 and include the number of steps taken in 5 minute intervals each day.
@@ -18,7 +13,8 @@ The questions that this analysis aims to answer are:
 ## Loading and preprocessing the data
 A good practice is to make sure input data files are there, and if not, download them. We're not showing results here for convenience reasons. We're also converting the date column of type character to POSIX with format 'year-month-day'.
 
-```{r preparedata,echo=TRUE,message=FALSE,warning=FALSE}
+
+```r
 options(scipen = 1, digits = 2) # Set scientific notation digits
 
 # Load required libraries
@@ -45,7 +41,8 @@ activity <- activity %>% mutate(date=ymd(date))
 
 ## What is mean total number of steps taken per day?
 For this exercise the data were grouped by date, then a histogram was plotted. Vertical lines were added at the mean and median values:
-```{r meanstepsday}
+
+```r
 steps <- activity %>% group_by(date) %>% summarise(totalsteps=sum(steps, na.rm = T))
 
 # Median and mean
@@ -61,8 +58,9 @@ ggplot(aes(x=totalsteps), data=steps) +
       title='Frequency of total steps measured each day') +
   annotate('text', label=paste('Mean=',round(meansteps,2)), x=meansteps - 4000, y=10, color='red') +
   annotate('text', label=paste('Median=',mediansteps), x=mediansteps + 4000, y=10, color='#009900')
-
 ```
+
+![](PA1_template_files/figure-html/meanstepsday-1.png) 
 
 From the histogram we can conclude:
 
@@ -70,7 +68,7 @@ From the histogram we can conclude:
 * The distribution is skewed to the right.
 * This skewness usually causes the mean to be greater than the median, but in this case, the outlier at 0 steps pulls the mean to the left.
 
-Finally, the mean and median around the central tendency of the distribution are `r meansteps` and `r mediansteps`, respectively.
+Finally, the mean and median around the central tendency of the distribution are 9354.23 and 10395, respectively.
 
 ## What is the average daily activity pattern?
 
