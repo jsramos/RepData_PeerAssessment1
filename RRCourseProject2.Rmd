@@ -1,0 +1,96 @@
+---
+title: "Descriptive Analysis of US meteorological activity using NOAA Storm Database"
+output: 
+  html_document:
+    keep_md: false
+---
+
+## Introduction
+
+Storms and other severe weather events can cause both public health and economic problems for communities and municipalities. Many severe events can result in fatalities, injuries, and property damage, and preventing such outcomes to the extent possible is a key concern.
+
+This project involves exploring the U.S. National Oceanic and Atmospheric Administration's (NOAA) storm database. This database tracks characteristics of major storms and weather events in the United States, including when and where they occur, as well as estimates of any fatalities, injuries, and property damage.
+
+## Data
+
+The data for this assignment come from the NOAA Storm Database, and is in the form of a comma-separated-value file compressed via the bzip2 algorithm to reduce its size ([Download dataset here][https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2]). Codebook and data dictionary can be found [here][https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2Fpd01016005curr.pdf]. The events in the database start in the year 1950 and end in November 2011. In the earlier years of the database there are generally fewer events recorded, most likely due to a lack of good records. More recent years should be considered more complete.
+
+## Questions
+
+We will address the following questions:
+
+1. Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?
+
+2. Across the United States, which types of events have the greatest economic consequences?
+
+## Analysis
+
+### Processing data
+
+As mentioned above, data is taken from the NOAA Storm Database. The relevant data for our analysis are the following:
+
+1. BGN_DATE: date of occurrence or first observation of the phenomenon. Date.
+2. BGN_TIME: time of occurrence or first observation. Time.
+3. TIME_ZONE: timezone of the location of first observation or occurrence. Categorical.
+5. STATE: state of occurrence. Categorical.
+6. EVTYPE: Type of event. Categorical.
+7. F: tornado category in the fujita scale. Numeric.
+8. MAG: Miles-per-hour of thunderstorm or hailstorm. Numeric.
+10. FATALITIES: Number of human lives lost to the phenomenon. Numeric.
+11. INJURIES: Number of people that were injured in the presence of the phenomenon. Numeric.
+12. PROPDMG: Amount of USD in damage to property in the presence of the phenomenon. Numeric.
+13. PROPDMGEXP: Scale of the PROPDMG field. NA=1, K=1,000, M=1,000,000, B=1,000,000,000. Numeric (will be fused with PROPDMG field during processing).
+14. CROPDMG: Amount of USD in damage to agricultural crops. Numeric.
+15. CROPDMGEXP: Scale of the CROPDMG field. NA=1, K=1,000, M=1,000,000, B=1,000,000,000. Numeric (will be fused with CROPDMG field during processing).
+
+```{r preparedata,echo=TRUE,message=FALSE,warning=FALSE}
+options(scipen = 1, digits = 2) # Set scientific notation digits
+
+# Load required libraries
+if (!require(lubridate)) {stop('Package lubridate must be installed before proceeding.')}
+if (!require(dplyr)) {stop('Package dplyr must be installed before proceeding.')}
+if (!require(ggplot2)) {stop('Package ggplot2 must be installed before proceeding.')}
+if (!require(stringr)) {stop('Package stringr must be installed before proceeding.')}
+
+
+# Download and process data
+downloadedFilename <- 'StormData.csv.bz2'
+if (!file.exists(downloadedFilename)) {
+    dataUrl <- paste('https://d396qusza40orc.cloudfront.net/repdata/data/',downloadedFilename, sep = '')
+    download.file(dataUrl, destfile = downloadedFilename)
+}
+
+# Read-in file, converting empty strings and NA to NA
+raw <- read.csv(downloadedFilename, stringsAsFactors = F, strip.white=T, na.strings=c('NA',''))
+
+# Count NAs in all columns to only include those without them in the exploration.
+sapply(raw, function(x){sum(is.na(x))})
+
+# Build character vector by concatenating BGN_DATE and BGN_TIME.
+stormCharTime <- paste(unlist(strsplit(raw$BGN_DATE, split = ' '))[rep(c(T,F), (nrow(raw)/2))],
+                       raw$BGN_TIME, raw$TIME_ZONE)
+
+# Create new dataframe with only the columns we're interested in. We're also merging crop and property damage amount with their respective scales.
+storms <- data.frame(
+  timestamp=as.factor(stormCharTime),
+  state=as.factor(raw$STATE),
+  eventtype=as.factor(raw$EVTYPE),
+  fujita=as.factor(raw$F),
+  magnitude=as.numeric(raw$MAG),
+  fatalities=as.numeric(raw$FATALITIES),
+  injuries=as.numeric(raw$INJURIES),
+  propertydamage=as.numeric(raw$PROPDMG)*as.numeric(ifelse(raw$PROPDMGEXP %in% c('k','K'), 1000,
+                                       ifelse(raw$PROPDMGEXP %in% c('M','m'), 1000000,
+                                       ifelse(raw$PROPDMGEXP %in% c('B','b'), 1000000000,
+                                       ifelse(raw$PROPDMGEXP %in% c('h','H'), 100,1))))),
+  cropdamage=as.numeric(raw$CROPDMG)*as.numeric(ifelse(raw$CROPDMGEXP %in% c('k','K'), 1000,
+                                       ifelse(raw$CROPDMGEXP %in% c('M','m'), 1000000,
+                                       ifelse(raw$CROPDMGEXP %in% c('B','b'), 1000000000,
+                                       ifelse(raw$CROPDMGEXP %in% c('h','H'), 100,1)))))
+)
+```
+
+Having done the processing and narrowing down columns and knowing how to treat missing data, we can now proceed to answer the questions that concern this study.
+
+## which types of events are most harmful with respect to population health? 
+

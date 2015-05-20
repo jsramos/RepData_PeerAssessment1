@@ -32,7 +32,7 @@ if (!file.exists(dataFilename)) {
     unzip(downloadedFilename, files = dataFilename)
 }
 
-activity <- read.csv('activity.csv', stringsAsFactors = F, 
+activity <- read.csv('activity.csv', stringsAsFactors = F, na.strings='NA',  
                      colClasses = c('numeric', 'character', 'numeric'))
 
 # Convert date from character to posix
@@ -216,7 +216,8 @@ ggplot(differences, aes(x=interval, y=meansteps, group=weekday, color=factor(wee
   geom_line() +
   geom_smooth(method="lm", se=FALSE, lty=2, lwd=1) +
   scale_color_discrete(name="Weekday",
-                         labels=c("Weekend", "Weekday"))
+                         labels=c("Weekend", "Weekday")) +
+  facet_wrap(~weekday, nrow=1, ncol=2)
 ```
 
 ![](PA1_template_files/figure-html/differences-1.png) 
