@@ -29,19 +29,19 @@ We will address the following questions:
 
 As mentioned above, data is taken from the NOAA Storm Database. The relevant data for our analysis are the following:
 
-1. BGN_DATE: date of occurrence or first observation of the phenomenon. Date.
-2. BGN_TIME: time of occurrence or first observation. Time.
-3. TIME_ZONE: timezone of the location of first observation or occurrence. Categorical.
-5. STATE: state of occurrence. Categorical.
-6. EVTYPE: Type of event. Categorical.
-7. F: tornado category in the fujita scale. Numeric.
-8. MAG: Miles-per-hour of thunderstorm or hailstorm. Numeric.
-10. FATALITIES: Number of human lives lost to the phenomenon. Numeric.
-11. INJURIES: Number of people that were injured in the presence of the phenomenon. Numeric.
-12. PROPDMG: Amount of USD in damage to property in the presence of the phenomenon. Numeric.
-13. PROPDMGEXP: Scale of the PROPDMG field. NA=1, K=1,000, M=1,000,000, B=1,000,000,000. Numeric (will be fused with PROPDMG field during processing).
-14. CROPDMG: Amount of USD in damage to agricultural crops. Numeric.
-15. CROPDMGEXP: Scale of the CROPDMG field. NA=1, K=1,000, M=1,000,000, B=1,000,000,000. Numeric (will be fused with CROPDMG field during processing).
+1. `BGN_DATE`: date of occurrence or first observation of the phenomenon. Date.
+2. `BGN_TIME`: time of occurrence or first observation. Time.
+3. `TIME_ZONE`: timezone of the location of first observation or occurrence. Categorical.
+5. `STATE`: state of occurrence. Categorical.
+6. `EVTYPE`: Type of event. Categorical.
+7. `F`: tornado category in the fujita scale. Numeric.
+8. `MAG`: Miles-per-hour of thunderstorm or hailstorm. Numeric.
+10. `FATALITIES`: Number of human lives lost to the phenomenon. Numeric.
+11. `INJURIES`: Number of people that were injured in the presence of the phenomenon. Numeric.
+12. `PROPDMG`: Amount of USD in damage to property in the presence of the phenomenon. Numeric.
+13. `PROPDMGEXP`: Scale of the PROPDMG field. NA=1, K=1,000, M=1,000,000, B=1,000,000,000. Numeric (will be fused with PROPDMG field during processing).
+14. `CROPDMG`: Amount of USD in damage to agricultural crops. Numeric.
+15. `CROPDMGEXP`: Scale of the CROPDMG field. NA=1, K=1,000, M=1,000,000, B=1,000,000,000. Numeric (will be fused with CROPDMG field during processing).
 
 ```{r preparedata,echo=TRUE,message=FALSE,warning=FALSE}
 options(scipen = 1, digits = 2) # Set scientific notation digits
@@ -57,7 +57,7 @@ if (!require(stringr)) {stop('Package stringr must be installed before proceedin
 downloadedFilename <- 'StormData.csv.bz2'
 if (!file.exists(downloadedFilename)) {
     dataUrl <- paste('https://d396qusza40orc.cloudfront.net/repdata/data/',downloadedFilename, sep = '')
-    download.file(dataUrl, destfile = downloadedFilename)
+    download.file(dataUrl, destfile = downloadedFilename, method='curl')
 }
 
 # Read-in file, converting empty strings and NA to NA
@@ -92,5 +92,22 @@ storms <- data.frame(
 
 Having done the processing and narrowing down columns and knowing how to treat missing data, we can now proceed to answer the questions that concern this study.
 
-## which types of events are most harmful with respect to population health? 
+## Which types of events are most harmful with respect to population health? 
+
+### Definition of 'population health'
+For the purpose of this study, we define 'population health' as any injury to human lives caused by the weather phenomenon that results in temporary or permanent physical damage, or a fatality.
+
+### Injuries and fatalities by type of weather event
+
+We'll tacke this question by grouping by event type and summarizing the injuries column, and order them by number of injuries.
+
+```{r harmfulevents, message=FALSE}
+# Group by eventtype, summarize by injuries + fatalities and arrange by injuries + fatalities
+harmfulevents <- storms %>% group_by(eventtype) %>% summarise(dead=sum(fatalities), wounded=sum(injuries), deadandwounded=sum(injuries + fatalities)) %>% arrange(desc(deadandwounded))
+
+# print head
+head(harmfulevents, 15)
+
+# Barplot
+```
 
