@@ -44,14 +44,15 @@ As mentioned above, data is taken from the NOAA Storm Database. The relevant dat
 15. `CROPDMGEXP`: Scale of the CROPDMG field. NA=1, K=1,000, M=1,000,000, B=1,000,000,000. Numeric (will be fused with CROPDMG field during processing).
 
 ```{r preparedata,echo=TRUE,message=FALSE,warning=FALSE}
-options(scipen = 1, digits = 2) # Set scientific notation digits
+options(scipen = 999, digits = 2) # Set scientific notation digits
 
 # Load required libraries
 if (!require(lubridate)) {stop('Package lubridate must be installed before proceeding.')}
 if (!require(dplyr)) {stop('Package dplyr must be installed before proceeding.')}
 if (!require(ggplot2)) {stop('Package ggplot2 must be installed before proceeding.')}
 if (!require(stringr)) {stop('Package stringr must be installed before proceeding.')}
-
+if (!require(tidyr)) {stop('Package tidyr must be installed before proceeding.')}
+if (!require(xtable)) {stop('Package xtable must be installed before proceeding.')}
 
 # Download and process data
 downloadedFilename <- 'StormData.csv.bz2'
@@ -61,33 +62,37 @@ if (!file.exists(downloadedFilename)) {
 }
 
 # Read-in file, converting empty strings and NA to NA
-raw <- read.csv(downloadedFilename, stringsAsFactors = F, strip.white=T, na.strings=c('NA',''))
+if (!exists('crude')) {
+  crude <- read.csv(downloadedFilename, stringsAsFactors = F, strip.white=T, na.strings=c('NA',''))
+}
 
 # Count NAs in all columns to only include those without them in the exploration.
-sapply(raw, function(x){sum(is.na(x))})
+sapply(crude, function(x){sum(is.na(x))})
 
 # Build character vector by concatenating BGN_DATE and BGN_TIME.
-stormCharTime <- paste(unlist(strsplit(raw$BGN_DATE, split = ' '))[rep(c(T,F), (nrow(raw)/2))],
-                       raw$BGN_TIME, raw$TIME_ZONE)
+stormCharTime <- paste(unlist(strsplit(crude$BGN_DATE, split = ' '))[rep(c(T,F), (nrow(crude)/2))],
+                       crude$BGN_TIME, crude$TIME_ZONE)
 
 # Create new dataframe with only the columns we're interested in. We're also merging crop and property damage amount with their respective scales.
-storms <- data.frame(
-  timestamp=as.factor(stormCharTime),
-  state=as.factor(raw$STATE),
-  eventtype=as.factor(raw$EVTYPE),
-  fujita=as.factor(raw$F),
-  magnitude=as.numeric(raw$MAG),
-  fatalities=as.numeric(raw$FATALITIES),
-  injuries=as.numeric(raw$INJURIES),
-  propertydamage=as.numeric(raw$PROPDMG)*as.numeric(ifelse(raw$PROPDMGEXP %in% c('k','K'), 1000,
-                                       ifelse(raw$PROPDMGEXP %in% c('M','m'), 1000000,
-                                       ifelse(raw$PROPDMGEXP %in% c('B','b'), 1000000000,
-                                       ifelse(raw$PROPDMGEXP %in% c('h','H'), 100,1))))),
-  cropdamage=as.numeric(raw$CROPDMG)*as.numeric(ifelse(raw$CROPDMGEXP %in% c('k','K'), 1000,
-                                       ifelse(raw$CROPDMGEXP %in% c('M','m'), 1000000,
-                                       ifelse(raw$CROPDMGEXP %in% c('B','b'), 1000000000,
-                                       ifelse(raw$CROPDMGEXP %in% c('h','H'), 100,1)))))
-)
+if (!exists('storms')) {
+  storms <- data.frame(
+    timestamp=as.factor(stormCharTime),
+    state=as.factor(crude$STATE),
+    eventtype=as.factor(crude$EVTYPE),
+    fujita=as.factor(crude$F),
+    magnitude=as.numeric(crude$MAG),
+    fatalities=as.numeric(crude$FATALITIES),
+    injuries=as.numeric(crude$INJURIES),
+    propertydamage=as.numeric(crude$PROPDMG)*as.numeric(ifelse(crude$PROPDMGEXP %in% c('k','K'), 1000,
+                                         ifelse(crude$PROPDMGEXP %in% c('M','m'), 1000000,
+                                         ifelse(crude$PROPDMGEXP %in% c('B','b'), 1000000000,
+                                         ifelse(crude$PROPDMGEXP %in% c('h','H'), 100,1))))),
+    cropdamage=as.numeric(crude$CROPDMG)*as.numeric(ifelse(crude$CROPDMGEXP %in% c('k','K'), 1000,
+                                         ifelse(crude$CROPDMGEXP %in% c('M','m'), 1000000,
+                                         ifelse(crude$CROPDMGEXP %in% c('B','b'), 1000000000,
+                                         ifelse(crude$CROPDMGEXP %in% c('h','H'), 100,1)))))
+  )
+}
 ```
 
 Having done the processing and narrowing down columns and knowing how to treat missing data, we can now proceed to answer the questions that concern this study.
@@ -99,15 +104,74 @@ For the purpose of this study, we define 'population health' as any injury to hu
 
 ### Injuries and fatalities by type of weather event
 
-We'll tacke this question by grouping by event type and summarizing the injuries column, and order them by number of injuries.
+We'll tackle this question first by calculating the total human cost of the entire dataset (all event types and from 1950 to 2011).
 
-```{r harmfulevents, message=FALSE}
-# Group by eventtype, summarize by injuries + fatalities and arrange by injuries + fatalities
-harmfulevents <- storms %>% group_by(eventtype) %>% summarise(dead=sum(fatalities), wounded=sum(injuries), deadandwounded=sum(injuries + fatalities)) %>% arrange(desc(deadandwounded))
+```{r totalhumancost, message=FALSE}
 
-# print head
-head(harmfulevents, 15)
-
-# Barplot
+# Total human cost in the dataset
+totalhumancost <- with(crude, sum(INJURIES+FATALITIES))
+print(totalhumancost)
 ```
 
+We'll then plot the total count of both injured and fatal losses.
+
+```{r humancostplot, message=FALSE, fig.height=6, fig.width=11}
+
+# Group by eventtype, summarize by injuries + fatalities and arrange by injuries + fatalities
+harmfulevents <- storms %>% group_by(eventtype) %>% 
+  summarise(dead=sum(fatalities), deadpct=dead/dandw,  
+            wounded=sum(injuries), woundedpct=wounded/dandw, 
+            dandw=sum(dead+wounded), dandwpct=dandw/dandw) %>% 
+  arrange(desc(dandw))
+
+# Top 20 harmful events
+top20 <- slice(harmfulevents, 1:20)
+
+# make data long and narrow for ggplot2
+gathered <- gather(top20, type, count, -c(eventtype, dandw, dandwpct, deadpct, woundedpct))
+
+# rearrange event types to sort them in the plot 
+gathered <- mutate(gathered, eventtype=factor(eventtype, levels = top20$eventtype))
+
+ggplot(gathered, aes(x=eventtype, y=count, fill=type)) +
+  geom_bar(stat="identity") +
+  theme(axis.text.x=element_text(angle=90, hjust=1)) +
+  labs(x='Type of weather event', y='Fatalities + Injured count', title='Top 20 weather phenomena most damaging\nto human lives in the US (1950-2011)')
+
+# Total human cost for tornadoes
+totalhumancosttornadoes <- filter(top20, eventtype=='TORNADO') %>% select(dandw)
+
+```
+
+We can see that tornadoes are by far the weather phenomenon that inflicts the most damage on human lives, with *`r totalhumancosttornadoes`* people either injuried or killed, a whopping *`r (totalhumancosttornadoes/totalhumancost)*100`%* of the entire data set.
+
+The effect of so high a number eclipses the contribution to human cost of the rest of the phenomena, so we'll show a 2nd plot WITHOUT data for tornadoes.
+
+```{r notornadoplot, message=FALSE, fig.height=6, fig.width=11}
+
+# remove rows for tornadoes
+notornado <- filter(gathered, eventtype!='TORNADO')
+
+ggplot(notornado, aes(x=eventtype, y=count, fill=type)) +
+  geom_bar(stat="identity") +
+  theme(axis.text.x=element_text(angle=90, hjust=1)) +
+  labs(x='Type of weather event', y='Fatalities + Injured count', title='Lower 19 of the top 20 weather phenomena most damaging\nto human lives in the US (1950-2011)')
+
+```
+
+The plot shows that the weather phenomena that inflict the most human suffering, *after tornadoes* are:
+
+2. Intense heat waves
+3. Thunderstorm winds
+4. Floods
+5. Lightning
+6. Heat waves
+7. Flash floods
+
+Finally, to summarize these findings, we show a table for these top 8 phenomena, with their total cost, and percent of fatalities and injuries as fractions of total costs.
+
+```{r table, message=FALSE,results='asis'}
+tab <- mutate(top20, WeatherPhenomenon=eventtype, TotalHumanCost=dandw, PercentInjured=woundedpct*100, PercentKilled=deadpct*100) %>% arrange(desc(dandw)) %>% slice(1:8)
+
+print(xtable(tab), type='html')
+```
