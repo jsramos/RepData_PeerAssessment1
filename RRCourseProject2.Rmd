@@ -160,10 +160,10 @@ The plot shows that the weather phenomena that inflict the most human suffering,
 6. Heat waves
 7. Flash floods
 
-Finally, to summarize these findings, we show a table for these top 8 phenomena, with their total cost, and percent of fatalities and injuries as fractions of total costs.
+Finally, to summarize these findings, we show a table for these top 20 phenomena, ordered by fatalities, with their total cost, and percent of fatalities and injuries as fractions of total costs.
 
 ```{r table, message=FALSE,results='asis'}
-tab <- transmute(top20, WeatherPhenomenon=eventtype, TotalHumanCost=dandw, PercentInjured=woundedpct*100, PercentKilled=deadpct*100) %>% arrange(desc(PercentKilled)) %>% slice(1:8)
+tab <- transmute(top20, WeatherPhenomenon=eventtype, TotalHumanCost=dandw, PercentInjured=woundedpct*100, PercentKilled=deadpct*100) %>% arrange(desc(PercentKilled)) %>% slice(1:20)
 
 print(xtable(tab), type='html', include.rownames=FALSE)
 
