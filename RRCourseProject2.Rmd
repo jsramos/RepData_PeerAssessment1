@@ -135,9 +135,9 @@ totalhumancost <- sum(harmfulevents$dandw)
 
 ```
 
-We can see that tornadoes are by far the weather phenomenon that inflicts the most damage on human lives, with *`r totalhumancosttornadoes`* people either injuried or killed, a whopping *`r (totalhumancosttornadoes/totalhumancost)*100`%* of the entire data set.
+We can see that tornadoes are by far the weather phenomenon that inflicts the most damage on human lives, with **`r totalhumancosttornadoes`** people either injuried or killed, a whopping **`r (totalhumancosttornadoes/totalhumancost)*100`%** of the entire data set.
 
-The effect of so high a number eclipses the contribution to human cost of the rest of the phenomena, so we'll show a 2nd plot WITHOUT data for tornadoes.
+The effect of so high a number that it eclipses the contribution to human cost of the rest of the phenomena, so we'll show a 2nd plot **WITHOUT** data for tornadoes.
 
 ```{r notornadoplot, message=FALSE, fig.height=6, fig.width=11}
 
@@ -151,7 +151,7 @@ ggplot(notornado, aes(x=eventtype, y=count, fill=type)) +
 
 ```
 
-The plot shows that the weather phenomena that inflict the most human suffering, *after tornadoes* are:
+The plot shows that the weather phenomena that inflict the most human suffering (combining human losses and injuries), **after tornadoes** are:
 
 2. Intense heat waves
 3. Thunderstorm winds
@@ -160,11 +160,23 @@ The plot shows that the weather phenomena that inflict the most human suffering,
 6. Heat waves
 7. Flash floods
 
-Finally, to summarize these findings, we show a table for these top 20 phenomena, ordered by fatalities, with their total cost, and percent of fatalities and injuries as fractions of total costs.
+Finally, to summarize these findings, we'll show a table for these top 20 phenomena, ordered by fatalities, with their total cost, and percent of fatalities and injuries as fractions of total costs.
 
 ```{r table, message=FALSE,results='asis'}
 tab <- transmute(top20, WeatherPhenomenon=eventtype, TotalHumanCost=dandw, PercentInjured=woundedpct*100, PercentKilled=deadpct*100) %>% arrange(desc(PercentKilled)) %>% slice(1:20)
 
-print(xtable(tab), type='html', include.rownames=FALSE)
+print(xtable(tab, 
+             caption = 'Top 20 most harmful phenomena for human lives\n(ordered by % fatalities as fraction of total human cost',), 
+      type='html', include.rownames=FALSE)
 
 ```
+
+In contrast with previous plots, in this table we can clearly see that in terms of fatal incidents, tornadoes are not the most dangerous to human life with just **1 fatality per 20 incidents**, while rip currents are almost consistently fatal, with **more than 1 casualty per 2 incidents**, followed by flash floods and head haves, with **1 fatality per 3 incidents** and **1 casualty per 4 incidents**, respectively.
+
+## Which types of events have the greatest economic consequences?
+
+### Definition of 'economic consequences'
+For the purpose of this study, we define 'economic consequences' as any damage inflicted to property and crops. We are not making any distinction as to whether one is more important than the other, neither are we bringing the costs to present value, so the numbers are reported in terms of cost at the time of the inflicted damage.
+
+### Economic cost per type of event
+
