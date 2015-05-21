@@ -66,9 +66,6 @@ if (!exists('crude')) {
   crude <- read.csv(downloadedFilename, stringsAsFactors = F, strip.white=T, na.strings=c('NA',''))
 }
 
-# Count NAs in all columns to only include those without them in the exploration.
-sapply(crude, function(x){sum(is.na(x))})
-
 # Build character vector by concatenating BGN_DATE and BGN_TIME.
 stormCharTime <- paste(unlist(strsplit(crude$BGN_DATE, split = ' '))[rep(c(T,F), (nrow(crude)/2))],
                        crude$BGN_TIME, crude$TIME_ZONE)
@@ -95,7 +92,7 @@ if (!exists('storms')) {
 }
 ```
 
-Having done the processing and narrowing down columns and knowing how to treat missing data, we can now proceed to answer the questions that concern this study.
+Having done the processing and narrowing down columns of interest, we can now proceed to answer the questions that concern this study.
 
 ## Which types of events are most harmful with respect to population health? 
 
@@ -104,24 +101,18 @@ For the purpose of this study, we define 'population health' as any injury to hu
 
 ### Injuries and fatalities by type of weather event
 
-We'll tackle this question first by calculating the total human cost of the entire dataset (all event types and from 1950 to 2011).
-
-```{r totalhumancost, message=FALSE}
-
-# Total human cost in the dataset
-totalhumancost <- with(crude, sum(INJURIES+FATALITIES))
-print(totalhumancost)
-```
-
-We'll then plot the total count of both injured and fatal losses.
+We'll tackle this question first by plotting the total count of both injured and fatal losses per event type. Also, we will focus on the 20 most harmful events and not on the entire set due to several of the event categories claiming no human lives nor injured population.
 
 ```{r humancostplot, message=FALSE, fig.height=6, fig.width=11}
 
 # Group by eventtype, summarize by injuries + fatalities and arrange by injuries + fatalities
 harmfulevents <- storms %>% group_by(eventtype) %>% 
-  summarise(dead=sum(fatalities), deadpct=dead/dandw,  
-            wounded=sum(injuries), woundedpct=wounded/dandw, 
-            dandw=sum(dead+wounded), dandwpct=dandw/dandw) %>% 
+  summarise(dead=sum(fatalities),  
+            wounded=sum(injuries), 
+            dandw=sum(dead+wounded),
+            deadpct=(dead/dandw),
+            woundedpct=(wounded/dandw), 
+            dandwpct=(dandw/dandw)) %>% 
   arrange(desc(dandw))
 
 # Top 20 harmful events
@@ -139,7 +130,8 @@ ggplot(gathered, aes(x=eventtype, y=count, fill=type)) +
   labs(x='Type of weather event', y='Fatalities + Injured count', title='Top 20 weather phenomena most damaging\nto human lives in the US (1950-2011)')
 
 # Total human cost for tornadoes
-totalhumancosttornadoes <- filter(top20, eventtype=='TORNADO') %>% select(dandw)
+totalhumancosttornadoes <- (filter(top20, eventtype=='TORNADO') %>% select(dandw))
+totalhumancost <- sum(harmfulevents$dandw)
 
 ```
 
@@ -171,7 +163,8 @@ The plot shows that the weather phenomena that inflict the most human suffering,
 Finally, to summarize these findings, we show a table for these top 8 phenomena, with their total cost, and percent of fatalities and injuries as fractions of total costs.
 
 ```{r table, message=FALSE,results='asis'}
-tab <- mutate(top20, WeatherPhenomenon=eventtype, TotalHumanCost=dandw, PercentInjured=woundedpct*100, PercentKilled=deadpct*100) %>% arrange(desc(dandw)) %>% slice(1:8)
+tab <- transmute(top20, WeatherPhenomenon=eventtype, TotalHumanCost=dandw, PercentInjured=woundedpct*100, PercentKilled=deadpct*100) %>% arrange(desc(PercentKilled)) %>% slice(1:8)
 
-print(xtable(tab), type='html')
+print(xtable(tab), type='html', include.rownames=FALSE)
+
 ```
