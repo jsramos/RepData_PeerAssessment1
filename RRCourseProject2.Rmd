@@ -31,17 +31,13 @@ As mentioned above, data is taken from the NOAA Storm Database. The relevant dat
 
 1. `BGN_DATE`: date of occurrence or first observation of the phenomenon. Date.
 2. `BGN_TIME`: time of occurrence or first observation. Time.
-3. `TIME_ZONE`: timezone of the location of first observation or occurrence. Categorical.
-5. `STATE`: state of occurrence. Categorical.
-6. `EVTYPE`: Type of event. Categorical.
-7. `F`: tornado category in the fujita scale. Numeric.
-8. `MAG`: Miles-per-hour of thunderstorm or hailstorm. Numeric.
-10. `FATALITIES`: Number of human lives lost to the phenomenon. Numeric.
-11. `INJURIES`: Number of people that were injured in the presence of the phenomenon. Numeric.
-12. `PROPDMG`: Amount of USD in damage to property in the presence of the phenomenon. Numeric.
-13. `PROPDMGEXP`: Scale of the PROPDMG field. NA=1, K=1,000, M=1,000,000, B=1,000,000,000. Numeric (will be fused with PROPDMG field during processing).
-14. `CROPDMG`: Amount of USD in damage to agricultural crops. Numeric.
-15. `CROPDMGEXP`: Scale of the CROPDMG field. NA=1, K=1,000, M=1,000,000, B=1,000,000,000. Numeric (will be fused with CROPDMG field during processing).
+3. `EVTYPE`: Type of event. Categorical.
+4. `FATALITIES`: Number of human lives lost to the phenomenon. Numeric.
+5. `INJURIES`: Number of people that were injured in the presence of the phenomenon. Numeric.
+6. `PROPDMG`: Amount of USD in damage to property in the presence of the phenomenon. Numeric.
+7. `PROPDMGEXP`: Scale of the PROPDMG field. NA=1, K=1,000, M=1,000,000, B=1,000,000,000. Numeric (will be fused with PROPDMG field during processing).
+8. `CROPDMG`: Amount of USD in damage to agricultural crops. Numeric.
+9. `CROPDMGEXP`: Scale of the CROPDMG field. NA=1, K=1,000, M=1,000,000, B=1,000,000,000. Numeric (will be fused with CROPDMG field during processing).
 
 ```{r preparedata,echo=TRUE,message=FALSE,warning=FALSE}
 options(scipen = 999, digits = 2) # Set scientific notation digits
@@ -53,6 +49,7 @@ if (!require(ggplot2)) {stop('Package ggplot2 must be installed before proceedin
 if (!require(stringr)) {stop('Package stringr must be installed before proceeding.')}
 if (!require(tidyr)) {stop('Package tidyr must be installed before proceeding.')}
 if (!require(xtable)) {stop('Package xtable must be installed before proceeding.')}
+if (!require(gridExtra)) {stop('Package gridExtra must be installed before proceeding.')}
 
 # Download and process data
 downloadedFilename <- 'StormData.csv.bz2'
@@ -76,8 +73,6 @@ if (!exists('storms')) {
     timestamp=as.factor(stormCharTime),
     state=as.factor(crude$STATE),
     eventtype=as.factor(crude$EVTYPE),
-    fujita=as.factor(crude$F),
-    magnitude=as.numeric(crude$MAG),
     fatalities=as.numeric(crude$FATALITIES),
     injuries=as.numeric(crude$INJURIES),
     propertydamage=as.numeric(crude$PROPDMG)*as.numeric(ifelse(crude$PROPDMGEXP %in% c('k','K'), 1000,
@@ -90,9 +85,13 @@ if (!exists('storms')) {
                                          ifelse(crude$CROPDMGEXP %in% c('h','H'), 100,1)))))
   )
 }
+
+# Columns with no NAs in them
+colnames(crude)[unlist(lapply(crude, function(x){!any(is.na(x))}))]
+
 ```
 
-Having done the processing and narrowing down columns of interest, we can now proceed to answer the questions that concern this study.
+Considering that the columns holding data on type of weather phenomena, injuries, fatalities, and damage to property and crops **don't have missing data in them**, and given that our questions of interest concern only human and economic cost, the entire dataset has been narrowed down to the proper variables.
 
 ## Which types of events are most harmful with respect to population health? 
 
@@ -101,9 +100,7 @@ For the purpose of this study, we define 'population health' as any injury to hu
 
 ### Injuries and fatalities by type of weather event
 
-We'll tackle this question first by plotting the total count of both injured and fatal losses per event type. Also, we will focus on the 20 most harmful events and not on the entire set due to several of the event categories claiming no human lives nor injured population.
-
-```{r humancostplot, message=FALSE, fig.height=6, fig.width=11}
+```{r humancost, message=FALSE}
 
 # Group by eventtype, summarize by injuries + fatalities and arrange by injuries + fatalities
 harmfulevents <- storms %>% group_by(eventtype) %>% 
@@ -114,6 +111,15 @@ harmfulevents <- storms %>% group_by(eventtype) %>%
             woundedpct=(wounded/dandw), 
             dandwpct=(dandw/dandw)) %>% 
   arrange(desc(dandw))
+
+# Events with no human cost
+nocost <- nrow(filter(harmfulevents, dandw==0))
+
+```
+
+We'll tackle this question first by plotting the total count of both injured and fatal losses per event type. Also, we will focus on the 20 most harmful events and not on the entire set due to **`r nocost`** events out of **`r nrow(harmfulevents)`** claiming no human lives nor injured population.
+
+```{r humancostplot, message=FALSE, fig.height=6, fig.width=11}
 
 # Top 20 harmful events
 top20 <- slice(harmfulevents, 1:20)
@@ -135,7 +141,7 @@ totalhumancost <- sum(harmfulevents$dandw)
 
 ```
 
-We can see that tornadoes are by far the weather phenomenon that inflicts the most damage on human lives, with **`r totalhumancosttornadoes`** people either injuried or killed, a whopping **`r (totalhumancosttornadoes/totalhumancost)*100`%** of the entire data set.
+We can see that tornadoes are by far the weather phenomenon that inflicts the most damage on human lives, with **`r totalhumancosttornadoes`** people either injuried or killed, a whopping **`r (totalhumancosttornadoes/totalhumancost)*100`%** of the human cost recorded by the entire dataset.
 
 The effect of so high a number hides the contribution to human cost of the rest of the phenomena, so we'll show a 2nd plot **WITHOUT** data for tornadoes.
 
@@ -176,7 +182,7 @@ In contrast with previous plots, in this table we can clearly see that in terms 
 ## Which types of events have the greatest economic consequences?
 
 ### Definition of 'economic consequences'
-For the purpose of this study, we define 'economic consequences' as any damage inflicted to property and crops. We are not making any distinction as to whether one is more important than the other, neither are we bringing the costs to present value, so the numbers are reported in terms of cost at the time of the inflicted damage.
+For the purpose of this study, we define 'economic consequences' as any damage inflicted to property and crops. We are not making any distinction as to whether one is more important than the other, neither are we bringing the costs to present value, so the numbers are reported in terms of cost at the time of the inflicted damage and no weight is assigned to neither.
 
 ### Economic cost per type of event
 
@@ -188,25 +194,60 @@ costlyevents <- storms %>% group_by(eventtype) %>%
             cropdamage=sum(cropdamage), 
             totaldamage=sum(propertydamage+cropdamage),
             propertydamagepct=(propertydamage/totaldamage),
-            cropdamagepct=(cropdamage/totaldamage)) %>% 
+            cropdamagepct=(cropdamage/totaldamage)) %>%
   arrange(desc(totaldamage))
+  
+# Top 12 costly events by property damage
+top12crop <- costlyevents %>% arrange(desc(cropdamage)) %>% slice(1:12) 
 
-# Top 20 costly events
-top20cost <- slice(costlyevents, 1:10)
+# Top 12 costly events by property damage
+top12prop <- costlyevents %>% arrange(desc(propertydamage)) %>% slice(1:12) 
 
-# make data long and narrow for ggplot2
-gatheredcost <- gather(top20cost, type, count, -c(eventtype, totaldamage, propertydamagepct, cropdamagepct))
+# Top 12 costly events
+top12cost <- slice(costlyevents, 1:12)
+
+# make data long and narrow for ggplot2 for each top 12 dataset 
+gatheredcost <- gather(top12cost, type, count, -c(eventtype, totaldamage, propertydamagepct, cropdamagepct))
 
 # rearrange event types to sort them in the plot 
-gatheredcost <- mutate(gatheredcost, eventtype=factor(eventtype, levels = top20cost$eventtype))
+gatheredcost <- mutate(gatheredcost, eventtype=factor(eventtype, levels = top12cost$eventtype))
+gatheredprop <- mutate(top12prop, eventtype=factor(eventtype, levels = top12prop$eventtype))
+gatheredcrop <- mutate(top12crop, eventtype=factor(eventtype, levels = top12crop$eventtype))
 
-ggplot(gatheredcost, aes(x=eventtype, y=count/1000000000, fill=type)) +
-  geom_bar(stat="identity") +
-  theme(axis.text.x=element_text(angle=90, hjust=1)) +
-  labs(x='Type of weather event', y='Property + Crop Damage (billions USD)', title='Top 10 weather phenomena most damaging\nto property and crops in the US (1950-2011)')
 
-# Total human cost for tornadoes
-totalcosttornadoes <- (filter(top20cost, eventtype=='FLOOD') %>% select(totaldamage))
-totalcost <- sum(costlyevents$totaldamage)
+totalplot <- ggplot(gatheredcost, aes(x=eventtype, y=count, fill=type)) +
+  geom_bar(stat="identity", aes(order=desc(type))) +
+  theme(axis.text.x=element_text(angle=90, hjust=1), axis.title.x = element_blank(),
+        legend.position='none') + 
+  scale_y_continuous(breaks=seq(0,150000000000, 50000000000), labels=c(0, 50, 100, 150)) +
+  labs(y='Property + Crop Damage')
+
+propplot <- ggplot(gatheredprop, aes(x=eventtype, y=(propertydamage/1000000000))) +
+  geom_bar(stat="identity", fill='#F8766D') +  
+  theme(axis.text.x=element_text(angle=90, hjust=1), axis.title.x = element_blank()) +
+  ylim(c(0,150)) +
+  labs(y='Property Damage')
+
+cropplot <- ggplot(gatheredcrop, aes(x=eventtype, y=(cropdamage/1000000000))) +
+  geom_bar(stat="identity", fill='#00BFC4') +
+  theme(axis.text.x=element_text(angle=90, hjust=1), axis.title.x = element_blank()) +
+  ylim(c(0,150)) +
+  labs(y='Crop Damage')
+
+grid.arrange(propplot, cropplot, totalplot, ncol=3, main = 'Property & Crop Damage (billion $) per Event Type (1950-2011)')
 
 ```
+
+We can conclude from these plots that:
+
+1. Crop damage is orders of magnitude lower than property damage.
+2. The phenomena inflicting the most property damage are **1) floods, 2) typhoons, 3) tornados, 4) storm surges.**
+3. The phenomena inflicting the most crop damage are **1) drought, 2) flood, 3) riverflood, 4) icestorm.**
+4. The impact of drought is mainly to crop damage with **93%** of the total cost of **$15 bn.**, as opposed to property damage, with the remaining **7%**.
+5. The impact of flood is mostly localized to property damage, with **96%** of the total cost of **$150 bn.**
+6. Riverfloods and icestorms are the events for which property and crop damage are balanced around **50%-50%.**
+7. Save for drought, the top 5 events with the highest material cost involve strong winds and very heavy rain.
+
+## Conclusions
+
+We observe that the combination of strong rains and winds are responsible for the most part of both human and material losses, so prevention and relief efforts should center around these 2 forces of nature, although a further, broader study on 1) disaster relief budget, 2) weather monitoring locations, and 3) early warning systems is required to make adequate recommendations that truly result in reduced material and human losses.
