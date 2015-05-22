@@ -1,33 +1,24 @@
 ---
-title: "Descriptive Analysis of US meteorological activity using NOAA Storm Database"
-output: 
+title: Descriptive Analysis of Human and Material Costs of Weather Events from 1950
+  to 2011
+output:
+  pdf_document: default
   html_document:
-    keep_md: false
+    keep_md: no
 ---
 
-## Introduction
+# Synopsis
 
-Storms and other severe weather events can cause both public health and economic problems for communities and municipalities. Many severe events can result in fatalities, injuries, and property damage, and preventing such outcomes to the extent possible is a key concern.
+Storms and other severe weather events can cause both public health and economic problems for communities and municipalities. Many severe events can result in fatalities, injuries, and property damage, and preventing such outcomes to the extent possible is a key concern. This study will explore the US NOAA storm database to answer the following: 
 
-This project involves exploring the U.S. National Oceanic and Atmospheric Administration's (NOAA) storm database. This database tracks characteristics of major storms and weather events in the United States, including when and where they occur, as well as estimates of any fatalities, injuries, and property damage.
+1. Which types of events are most harmful with respect to population health?
+2. Which types of events have the greatest economic consequences?
 
-## Data
+In the section *Data* we will process the data and prepare it for suitable exploration, and in the *Results* section we will show our descriptive analysis with the help of graphical plots. Finally, in the *Conclusions* sections we briefly summarize our findings and comment on further studies. 
 
-The data for this assignment come from the NOAA Storm Database, and is in the form of a comma-separated-value file compressed via the bzip2 algorithm to reduce its size ([Download dataset here][https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2]). Codebook and data dictionary can be found [here][https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2Fpd01016005curr.pdf]. The events in the database start in the year 1950 and end in November 2011. In the earlier years of the database there are generally fewer events recorded, most likely due to a lack of good records. More recent years should be considered more complete.
+# Data Processing
 
-## Questions
-
-We will address the following questions:
-
-1. Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?
-
-2. Across the United States, which types of events have the greatest economic consequences?
-
-## Analysis
-
-### Processing data
-
-As mentioned above, data is taken from the NOAA Storm Database. The relevant data for our analysis are the following:
+The data for this assignment come from the NOAA Storm Database in the form of a comma-separated-value file compressed via the bzip2 algorithm to reduce its size [(Download dataset here)](https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2). Codebook and data dictionary can be found [here](https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2Fpd01016005curr.pdf). The events in the database start in the year 1950 and end in November 2011. In the earlier years of the database there are generally fewer events recorded, most likely due to a lack of good records. More recent years should be considered more complete. The relevant columns for our analysis are the following:
 
 1. `BGN_DATE`: date of occurrence or first observation of the phenomenon. Date.
 2. `BGN_TIME`: time of occurrence or first observation. Time.
@@ -92,6 +83,8 @@ colnames(crude)[unlist(lapply(crude, function(x){!any(is.na(x))}))]
 ```
 
 Considering that the columns holding data on type of weather phenomena, injuries, fatalities, and damage to property and crops **don't have missing data in them**, and given that our questions of interest concern only human and economic cost, the entire dataset has been narrowed down to the proper variables.
+
+# Results
 
 ## Which types of events are most harmful with respect to population health? 
 
@@ -248,6 +241,6 @@ We can conclude from these plots that:
 6. Riverfloods and icestorms are the events for which property and crop damage are balanced around **50%-50%.**
 7. Save for drought, the top 5 events with the highest material cost involve strong winds and very heavy rain.
 
-## Conclusions
+# Conclusions
 
 We observe that the combination of strong rains and winds are responsible for the most part of both human and material losses, so prevention and relief efforts should center around these 2 forces of nature, although a further, broader study on 1) disaster relief budget, 2) weather monitoring locations, and 3) early warning systems is required to make adequate recommendations that truly result in reduced material and human losses.
