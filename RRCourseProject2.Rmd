@@ -137,7 +137,7 @@ totalhumancost <- sum(harmfulevents$dandw)
 
 We can see that tornadoes are by far the weather phenomenon that inflicts the most damage on human lives, with **`r totalhumancosttornadoes`** people either injuried or killed, a whopping **`r (totalhumancosttornadoes/totalhumancost)*100`%** of the entire data set.
 
-The effect of so high a number that it eclipses the contribution to human cost of the rest of the phenomena, so we'll show a 2nd plot **WITHOUT** data for tornadoes.
+The effect of so high a number hides the contribution to human cost of the rest of the phenomena, so we'll show a 2nd plot **WITHOUT** data for tornadoes.
 
 ```{r notornadoplot, message=FALSE, fig.height=6, fig.width=11}
 
@@ -171,7 +171,7 @@ print(xtable(tab,
 
 ```
 
-In contrast with previous plots, in this table we can clearly see that in terms of fatal incidents, tornadoes are not the most dangerous to human life with just **1 fatality per 20 incidents**, while rip currents are almost consistently fatal, with **more than 1 casualty per 2 incidents**, followed by flash floods and head haves, with **1 fatality per 3 incidents** and **1 casualty per 4 incidents**, respectively.
+In contrast with previous plots, in this table we can clearly see that in terms of fatal incidents, tornadoes are not the most dangerous to human life with just **1 fatality per 20 incidents**, while rip currents are almost consistently fatal, with **more than 1 casualty per 2 incidents**, followed by flash floods and heat haves, with **1 fatality per 3 incidents** and **1 casualty per 4 incidents**, respectively.
 
 ## Which types of events have the greatest economic consequences?
 
@@ -180,3 +180,33 @@ For the purpose of this study, we define 'economic consequences' as any damage i
 
 ### Economic cost per type of event
 
+```{r econcostplot, message=FALSE, fig.height=6, fig.width=11}
+
+# Group by eventtype, summarize by injuries + fatalities and arrange by injuries + fatalities
+costlyevents <- storms %>% group_by(eventtype) %>% 
+  summarise(propertydamage=sum(propertydamage),  
+            cropdamage=sum(cropdamage), 
+            totaldamage=sum(propertydamage+cropdamage),
+            propertydamagepct=(propertydamage/totaldamage),
+            cropdamagepct=(cropdamage/totaldamage)) %>% 
+  arrange(desc(totaldamage))
+
+# Top 20 costly events
+top20cost <- slice(costlyevents, 1:10)
+
+# make data long and narrow for ggplot2
+gatheredcost <- gather(top20cost, type, count, -c(eventtype, totaldamage, propertydamagepct, cropdamagepct))
+
+# rearrange event types to sort them in the plot 
+gatheredcost <- mutate(gatheredcost, eventtype=factor(eventtype, levels = top20cost$eventtype))
+
+ggplot(gatheredcost, aes(x=eventtype, y=count/1000000000, fill=type)) +
+  geom_bar(stat="identity") +
+  theme(axis.text.x=element_text(angle=90, hjust=1)) +
+  labs(x='Type of weather event', y='Property + Crop Damage (billions USD)', title='Top 10 weather phenomena most damaging\nto property and crops in the US (1950-2011)')
+
+# Total human cost for tornadoes
+totalcosttornadoes <- (filter(top20cost, eventtype=='FLOOD') %>% select(totaldamage))
+totalcost <- sum(costlyevents$totaldamage)
+
+```
